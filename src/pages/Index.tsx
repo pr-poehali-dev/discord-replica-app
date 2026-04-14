@@ -268,6 +268,19 @@ export default function Index() {
           )}
         </button>
 
+        {/* Friends DM button */}
+        <button
+          onClick={() => setActivePanel("dm")}
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:rounded-xl relative
+            ${activePanel === "dm" ? "bg-emerald-600/30 text-emerald-300" : "bg-white/5 hover:bg-white/10 text-muted-foreground"}`}
+          title="Личные сообщения"
+        >
+          <Icon name="MessageCircle" size={18} />
+          {friends.length > 0 && activePanel !== "dm" && (
+            <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-emerald-400 rounded-full" />
+          )}
+        </button>
+
         {/* Bottom icons */}
         <div className="mt-auto flex flex-col gap-2">
           <button
@@ -645,6 +658,192 @@ export default function Index() {
           </div>
         )}
 
+        {/* DM PANEL */}
+        {activePanel === "dm" && (
+          <div className="flex flex-1 animate-fade-in overflow-hidden">
+            {/* Friends list sidebar */}
+            <div className="w-64 bg-[hsl(225,20%,7%)] border-r border-white/5 flex flex-col">
+              <div className="p-4 border-b border-white/5">
+                <h2 className="font-bold text-foreground mb-3">Друзья</h2>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setFriendsTab("all")}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all
+                      ${friendsTab === "all" ? "bg-violet-600/30 text-violet-300" : "text-muted-foreground hover:bg-white/5"}`}
+                  >
+                    Все ({friends.length})
+                  </button>
+                  <button
+                    onClick={() => setFriendsTab("pending")}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all relative
+                      ${friendsTab === "pending" ? "bg-violet-600/30 text-violet-300" : "text-muted-foreground hover:bg-white/5"}`}
+                  >
+                    Заявки
+                    {pendingIn.length > 0 && (
+                      <span className="ml-1 w-4 h-4 bg-emerald-500 rounded-full text-[9px] text-white inline-flex items-center justify-center">
+                        {pendingIn.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                {friendsTab === "all" && friends.map(f => (
+                  <div
+                    key={f.id}
+                    onClick={() => openDm(f)}
+                    className={`flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer transition-all group mb-0.5
+                      ${activeDm?.id === f.id ? "bg-white/10" : "hover:bg-white/5"}`}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-[10px] font-bold text-white">{f.avatar}</div>
+                      <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[hsl(225,20%,7%)] status-${f.status}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{f.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{statusLabel[f.status]}</p>
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); removeFriend(f.id); }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      <Icon name="UserMinus" size={12} />
+                    </button>
+                  </div>
+                ))}
+                {friendsTab === "pending" && (
+                  <>
+                    {pendingIn.length > 0 && (
+                      <>
+                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest px-2 py-2">Входящие</p>
+                        {pendingIn.map(f => (
+                          <div key={f.id} className="flex items-center gap-2 px-2 py-2 rounded-xl mb-0.5 glass neon-border animate-fade-in">
+                            <div className="relative flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-[10px] font-bold text-white">{f.avatar}</div>
+                              <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[hsl(225,20%,7%)] status-${f.status}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{f.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{f.tag}</p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button onClick={() => acceptFriend(f)} className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 transition-colors flex items-center justify-center">
+                                <Icon name="Check" size={11} />
+                              </button>
+                              <button onClick={() => declineFriend(f)} className="w-6 h-6 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors flex items-center justify-center">
+                                <Icon name="X" size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {pendingOut.length > 0 && (
+                      <>
+                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest px-2 py-2 mt-2">Отправленные</p>
+                        {pendingOut.map(f => (
+                          <div key={f.id} className="flex items-center gap-2 px-2 py-2 rounded-xl mb-0.5 bg-white/[0.02]">
+                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-muted-foreground">{f.avatar}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-muted-foreground truncate">{f.name}</p>
+                              <p className="text-[10px] text-muted-foreground">Ожидание...</p>
+                            </div>
+                            <button onClick={() => setPendingOut(prev => prev.filter(u => u.id !== f.id))} className="p-1 rounded-lg text-muted-foreground hover:text-red-400 transition-colors">
+                              <Icon name="X" size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {pendingIn.length === 0 && pendingOut.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground text-sm">Нет заявок</div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="p-3 border-t border-white/5">
+                <button
+                  onClick={() => setShowAddFriend(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl gradient-bg text-white text-sm font-medium hover:opacity-90 transition-all glow-violet"
+                >
+                  <Icon name="UserPlus" size={15} />
+                  Добавить друга
+                </button>
+              </div>
+            </div>
+
+            {/* DM Chat area */}
+            {activeDm ? (
+              <div className="flex flex-col flex-1">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 glass-strong">
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-[10px] font-bold text-white">{activeDm.avatar}</div>
+                    <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background status-${activeDm.status}`} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm">{activeDm.name}</h3>
+                    <p className="text-[10px] text-muted-foreground">{statusLabel[activeDm.status]}</p>
+                  </div>
+                  <div className="ml-auto flex gap-2">
+                    <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
+                      <Icon name="Phone" size={15} />
+                    </button>
+                    <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
+                      <Icon name="Video" size={15} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {(dmMessages[activeDm.id] || []).map(msg => (
+                    <div key={msg.id} className={`flex gap-2 ${msg.isMine ? "flex-row-reverse" : ""}`}>
+                      {!msg.isMine && (
+                        <div className="w-7 h-7 rounded-full gradient-bg flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                          {activeDm.avatar}
+                        </div>
+                      )}
+                      <div className={`max-w-xs px-3 py-2 rounded-2xl text-sm leading-relaxed
+                        ${msg.isMine
+                          ? "gradient-bg text-white rounded-br-sm"
+                          : "glass neon-border text-foreground rounded-bl-sm"
+                        }`}>
+                        {msg.text}
+                        <p className={`text-[9px] mt-1 ${msg.isMine ? "text-white/60" : "text-muted-foreground"}`}>{msg.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 border-t border-white/5">
+                  <div className="flex items-center gap-3 glass-strong rounded-2xl px-4 py-3 neon-border focus-within:border-violet-500/50 transition-all">
+                    <input
+                      type="text"
+                      value={dmInput}
+                      onChange={e => setDmInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && sendDm()}
+                      placeholder={`Написать ${activeDm.name}...`}
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none"
+                    />
+                    <button
+                      onClick={sendDm}
+                      disabled={!dmInput.trim()}
+                      className="w-8 h-8 rounded-xl gradient-bg flex items-center justify-center disabled:opacity-30 hover:opacity-90 transition-all glow-violet hover:scale-105"
+                    >
+                      <Icon name="Send" size={14} className="text-white" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 rounded-3xl gradient-bg flex items-center justify-center mb-4 glow-violet opacity-60">
+                  <Icon name="MessageCircle" size={36} className="text-white" />
+                </div>
+                <h3 className="font-bold text-foreground text-lg mb-2">Личные сообщения</h3>
+                <p className="text-sm text-muted-foreground max-w-xs">Выбери друга слева, чтобы начать общение</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MEMBERS SIDEBAR */}
         {activePanel === "chat" && (
           <div className="w-52 bg-[hsl(225,20%,7%)] border-l border-white/5 flex flex-col overflow-y-auto">
@@ -682,6 +881,153 @@ export default function Index() {
           </div>
         )}
       </div>
+
+      {/* ADD FRIEND MODAL */}
+      {showAddFriend && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={e => e.target === e.currentTarget && setShowAddFriend(false)}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddFriend(false)} />
+          <div className="relative glass-strong rounded-3xl p-6 w-full max-w-md mx-4 neon-border animate-scale-in">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-black text-xl text-foreground">Добавить друга</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Поиск по имени или тегу</p>
+              </div>
+              <button
+                onClick={() => setShowAddFriend(false)}
+                className="w-8 h-8 rounded-xl glass flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="X" size={15} />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 mb-4 p-1 glass rounded-xl">
+              <button
+                onClick={() => setFriendsTab("all")}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all
+                  ${friendsTab === "all" ? "gradient-bg text-white" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Найти
+              </button>
+              <button
+                onClick={() => setFriendsTab("pending")}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all relative
+                  ${friendsTab === "pending" ? "gradient-bg text-white" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Заявки {pendingIn.length > 0 && `(${pendingIn.length})`}
+              </button>
+            </div>
+
+            {friendsTab === "all" && (
+              <>
+                <div className="flex items-center gap-2 glass rounded-xl px-3 py-2.5 neon-border mb-4">
+                  <Icon name="Search" size={15} className="text-muted-foreground flex-shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={friendSearch}
+                    onChange={e => setFriendSearch(e.target.value)}
+                    placeholder="Введите имя или тег..."
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none"
+                  />
+                  {friendSearch && (
+                    <button onClick={() => setFriendSearch("")} className="text-muted-foreground hover:text-foreground">
+                      <Icon name="X" size={13} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {friendSearch.length < 2 && (
+                    <p className="text-center text-xs text-muted-foreground py-6">Введите минимум 2 символа для поиска</p>
+                  )}
+                  {friendSearch.length >= 2 && searchResults.length === 0 && (
+                    <p className="text-center text-xs text-muted-foreground py-6">Никого не найдено</p>
+                  )}
+                  {searchResults.map(user => (
+                    <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-all animate-fade-in">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full gradient-bg flex items-center justify-center text-xs font-bold text-white">{user.avatar}</div>
+                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background status-${user.status}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{user.tag}</p>
+                      </div>
+                      {pendingOut.find(u => u.id === user.id) ? (
+                        <span className="text-[11px] text-muted-foreground px-3 py-1.5 rounded-xl glass">Отправлено</span>
+                      ) : (
+                        <button
+                          onClick={() => sendFriendRequest(user)}
+                          className="px-3 py-1.5 rounded-xl gradient-bg text-white text-xs font-medium hover:opacity-90 transition-all glow-violet"
+                        >
+                          Добавить
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {friendsTab === "pending" && (
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {pendingIn.length === 0 && pendingOut.length === 0 && (
+                  <p className="text-center text-xs text-muted-foreground py-6">Нет активных заявок</p>
+                )}
+                {pendingIn.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-1 pb-1">Входящие заявки</p>
+                    {pendingIn.map(f => (
+                      <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl glass neon-border animate-fade-in">
+                        <div className="w-10 h-10 rounded-full gradient-bg flex items-center justify-center text-xs font-bold text-white">{f.avatar}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{f.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{f.tag}</p>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => acceptFriend(f)}
+                            className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 transition-all flex items-center justify-center"
+                          >
+                            <Icon name="Check" size={14} />
+                          </button>
+                          <button
+                            onClick={() => declineFriend(f)}
+                            className="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-all flex items-center justify-center"
+                          >
+                            <Icon name="X" size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {pendingOut.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-1 pb-1 mt-3">Исходящие</p>
+                    {pendingOut.map(f => (
+                      <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02]">
+                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-muted-foreground">{f.avatar}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-muted-foreground">{f.name}</p>
+                          <p className="text-[11px] text-muted-foreground">Ожидание ответа...</p>
+                        </div>
+                        <button onClick={() => setPendingOut(prev => prev.filter(u => u.id !== f.id))} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 transition-colors">
+                          <Icon name="X" size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
