@@ -226,7 +226,7 @@ export default function Index() {
       <div className="relative z-10 flex flex-col w-[72px] items-center py-4 gap-2 bg-[hsl(225,22%,5%)] border-r border-white/5">
         {/* Logo */}
         <div className="w-12 h-12 rounded-2xl gradient-bg flex items-center justify-center glow-violet mb-2 hover-scale cursor-pointer">
-          <span className="text-white font-black text-lg">N</span>
+          <span className="text-white font-black text-[10px] leading-none text-center">S7</span>
         </div>
         <div className="w-8 h-px bg-white/10 mb-1" />
 
