@@ -1,6 +1,33 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 
+type Friend = {
+  id: number;
+  name: string;
+  avatar: string;
+  status: string;
+  tag: string;
+};
+
+type DmMessage = {
+  id: number;
+  author: string;
+  text: string;
+  time: string;
+  isMine: boolean;
+};
+
+const ALL_USERS: Friend[] = [
+  { id: 10, name: "Алексей К.", avatar: "АК", status: "online", tag: "alex#1234" },
+  { id: 11, name: "Мария Н.", avatar: "МН", status: "online", tag: "masha#5678" },
+  { id: 12, name: "Дмитрий П.", avatar: "ДП", status: "idle", tag: "dima#9012" },
+  { id: 13, name: "Екатерина В.", avatar: "ЕВ", status: "dnd", tag: "katya#3456" },
+  { id: 14, name: "Иван С.", avatar: "ИС", status: "offline", tag: "ivan#7890" },
+  { id: 15, name: "Ольга М.", avatar: "ОМ", status: "online", tag: "olga#2345" },
+  { id: 16, name: "Сергей Т.", avatar: "СТ", status: "online", tag: "serg#6789" },
+  { id: 17, name: "Анна Л.", avatar: "АЛ", status: "idle", tag: "anna#0123" },
+];
+
 const SERVERS = [
   { id: 1, name: "Разработчики", emoji: "⚡", color: "from-violet-600 to-purple-700", unread: 3 },
   { id: 2, name: "Дизайн Hub", emoji: "🎨", color: "from-pink-500 to-rose-600", unread: 0 },
@@ -78,12 +105,78 @@ const statusLabel: Record<string, string> = {
 export default function Index() {
   const [activeServer, setActiveServer] = useState(1);
   const [activeChannel, setActiveChannel] = useState(1);
-  const [activePanel, setActivePanel] = useState<"chat" | "profile" | "notifications">("chat");
+  const [activePanel, setActivePanel] = useState<"chat" | "profile" | "notifications" | "dm">("chat");
   const [messageText, setMessageText] = useState("");
   const [messages, setMessages] = useState(MESSAGES);
   const [showReactionPicker, setShowReactionPicker] = useState<number | null>(null);
   const [notifRead, setNotifRead] = useState<number[]>([]);
   const [userStatus, setUserStatus] = useState<"online" | "idle" | "dnd" | "offline">("online");
+
+  // Friends system
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [friendSearch, setFriendSearch] = useState("");
+  const [friends, setFriends] = useState<Friend[]>([ALL_USERS[0], ALL_USERS[1], ALL_USERS[5]]);
+  const [pendingIn, setPendingIn] = useState<Friend[]>([ALL_USERS[2]]);
+  const [pendingOut, setPendingOut] = useState<Friend[]>([]);
+  const [activeDm, setActiveDm] = useState<Friend | null>(null);
+  const [dmMessages, setDmMessages] = useState<Record<number, DmMessage[]>>({
+    10: [
+      { id: 1, author: "Алексей К.", text: "Привет! Как дела?", time: "12:10", isMine: false },
+      { id: 2, author: "Вы", text: "Отлично, спасибо! Работаю над проектом.", time: "12:12", isMine: true },
+      { id: 3, author: "Алексей К.", text: "Классно! Расскажи подробнее 😊", time: "12:13", isMine: false },
+    ],
+    11: [
+      { id: 1, author: "Мария Н.", text: "Видела новый дизайн — очень нравится!", time: "11:00", isMine: false },
+    ],
+  });
+  const [dmInput, setDmInput] = useState("");
+  const [friendsTab, setFriendsTab] = useState<"all" | "pending">("all");
+
+  const searchResults = friendSearch.length >= 2
+    ? ALL_USERS.filter(u =>
+        (u.name.toLowerCase().includes(friendSearch.toLowerCase()) || u.tag.includes(friendSearch)) &&
+        !friends.find(f => f.id === u.id) &&
+        !pendingOut.find(f => f.id === u.id)
+      )
+    : [];
+
+  const sendFriendRequest = (user: Friend) => {
+    setPendingOut(prev => [...prev, user]);
+  };
+
+  const acceptFriend = (user: Friend) => {
+    setFriends(prev => [...prev, user]);
+    setPendingIn(prev => prev.filter(u => u.id !== user.id));
+  };
+
+  const declineFriend = (user: Friend) => {
+    setPendingIn(prev => prev.filter(u => u.id !== user.id));
+  };
+
+  const removeFriend = (id: number) => {
+    setFriends(prev => prev.filter(f => f.id !== id));
+  };
+
+  const openDm = (friend: Friend) => {
+    setActiveDm(friend);
+    setActivePanel("dm");
+    setShowAddFriend(false);
+  };
+
+  const sendDm = () => {
+    if (!dmInput.trim() || !activeDm) return;
+    setDmMessages(prev => ({
+      ...prev,
+      [activeDm.id]: [...(prev[activeDm.id] || []), {
+        id: Date.now(),
+        author: "Вы",
+        text: dmInput.trim(),
+        time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
+        isMine: true,
+      }]
+    }));
+    setDmInput("");
+  };
 
   const server = SERVERS.find(s => s.id === activeServer)!;
   const channel = CHANNELS.find(c => c.id === activeChannel)!;
@@ -161,10 +254,19 @@ export default function Index() {
         ))}
 
         <div className="w-8 h-px bg-white/10 my-1" />
-        {/* Add Server */}
-        <div className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-emerald-500/20 flex items-center justify-center cursor-pointer transition-all duration-200 hover:rounded-xl group">
-          <Icon name="Plus" size={20} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-        </div>
+        {/* Add Friend */}
+        <button
+          onClick={() => { setShowAddFriend(true); }}
+          className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-emerald-500/20 flex items-center justify-center cursor-pointer transition-all duration-200 hover:rounded-xl group relative"
+          title="Добавить друга"
+        >
+          <Icon name="UserPlus" size={18} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+          {pendingIn.length > 0 && (
+            <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white">
+              {pendingIn.length}
+            </div>
+          )}
+        </button>
 
         {/* Bottom icons */}
         <div className="mt-auto flex flex-col gap-2">
